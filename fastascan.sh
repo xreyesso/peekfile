@@ -3,11 +3,15 @@
 #A number of lines N, default: 0
 
 FOLDER=$1
-#NLINES=$2
+N=$2
 #if [[ ! -d $1 ]]
 #then
 #	echo The argument given is not a directory
 #fi
+if [[ $# -gt 2 ]]
+then
+  echo "The number of arguments passed greater than expected"
+fi
 
 #TODO: how to check $2 is a number?
 #TODO: how to set the default of $1 to current dir or default of $2 to 0?
@@ -54,6 +58,23 @@ find "$1" -type f -name "*.fa" -or -name "*.fasta" | while read i
 		echo "The total sequence length of the file is:"
     sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m
     # tr -d '\n' removes new lines
+
+    # If file $i contains less than or equal to N*2 lines, show it completely
+    # Otherwise, show the first N lines, then "...", and then the last N lines
+    NLINES_FILE=$(grep -c "" $i)
+    echo "The number of lines in the file is: " $NLINES_FILE
+    echo $2
+    echo $(( $2 * 2 ))
+#    if [[ $NLINES_FILE -le $(( $2 * 2 )) ]]
+#    then
+#      cat $i
+#    else
+#      echo WARN: The file has more than 2*$2 = $(( $2 * 2 )) lines
+#      head -n $2 $i
+#      echo "..."
+#      head -n $2 $i
+#    fi
+
   done
 #Once the fasta_ids file is created, sort it, get unique fastaIDs and count them
 echo "######" End of information per file "#########"
