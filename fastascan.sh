@@ -2,6 +2,8 @@
 # The folder X where to search the files, default: current folder
 # A number of lines N, default: 0
 
+#TODO: Fix indentation
+
 FOLDER=$1
 N=$2
 
@@ -51,16 +53,30 @@ touch $FOLDER/fasta_ids
 #chmod +w $1/fasta_ids
 find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
   do
-    filename=$i
-
     #TODO: how to delete the path and only keep the name??
-    echo "######" The file name is $filename "#########"
-      if [[ -h $i ]]
-        then
-			  echo "The file is a symbolic link."
-		  else
-			  echo "Not a symbolic link" #TODO: Are these conditions exclusive??
-	    fi
+
+    # Remove everything up to and including the last '/'
+    FILENAME=$(echo $i | sed "s/.*\///g")
+    #sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m
+
+    echo "###### The file name is " $FILENAME "#########"
+    if [[ -h $i ]]
+      then
+    	echo "The file is a symbolic link."
+    else
+    	echo "Not a symbolic link" #TODO: Are these conditions exclusive??
+    fi
+
+    # Use the exit code of grep to decide whether to process the file further
+    # If FILENAME does not start with a letter, print the message
+    # 'File cannot be processed because its filename is not as expected'
+    # and go to the next iteration
+    # Use -q to not print the matches
+    if echo $FILENAME | grep -q -v "^[a-zA-Z]"
+    then
+      echo "File cannot be processed because its filename is not as expected"
+      continue
+    fi
 
 	  #Get the fastaIDs from file $i and append them to a list containing all fastaIDs from the given folder
 		grep ">" $i | sed 's/>//' | awk '{print $1}' >> $FOLDER/fasta_ids
@@ -75,10 +91,12 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 
 		#TODO: how to deal with files like ._sequences.fasta?? Or hidden files???
 		#Maybe I should filter this at the beginning, when I'm selecting the files to iterate over
-		#wc -m counts words in a file
+		# we first get rid of '-' and then of white spaces in lines that are not the header
+		# then we pass all lines except the headers to tr to get rid of new line characters
+		# wc -m counts words in a file
 		SEQ_LENGTH=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m)
 		echo "The total sequence length of the file is: " $SEQ_LENGTH
-    #sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m
+ 
     # tr -d '\n' removes new lines
 
     # If file $i contains less than or equal to N*2 lines, show it completely
