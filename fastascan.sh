@@ -1,20 +1,35 @@
-#The script should take two optional arguments
-#The folder X where to search the files, default: current folder
-#A number of lines N, default: 0
+# The script takes two optional arguments:
+# The folder X where to search the files, default: current folder
+# A number of lines N, default: 0
 
 FOLDER=$1
 N=$2
-#if [[ ! -d $1 ]]
-#then
-#	echo The argument given is not a directory
-#fi
+
 if [[ $# -gt 2 ]]
 then
-  echo "The number of arguments passed greater than expected"
+  echo "The number of arguments passed is greater than expected"
 fi
 
-#TODO: how to check $2 is a number?
-#TODO: how to set the default of $1 to current dir or default of $2 to 0?
+if [[ ! -d $1 ]]
+then
+	echo "The argument given is not a directory"
+fi
+
+# If the folder is not given, use current folder as default
+#if [[ -z $1 ]]
+#then
+#	FOLDER=.
+#fi
+
+# If the number of lines N is not given, use 0 as default
+if [[ -z $2 ]]
+then
+  N=0
+fi
+
+
+#TODO: how to check $2 is a positive number?
+#TODO: how to set the default of $1 to current dir
 
 fasta_files=$(find $1 -type f -name "*.fa" -or -name "*.fasta")
 n_files=$(find $1 -type f -name "*.fa" -or -name "*.fasta" | wc -l)
@@ -38,9 +53,9 @@ find "$1" -type f -name "*.fa" -or -name "*.fasta" | while read i
     echo "######" The file name is $filename "#########"
       if [[ -h $i ]]
         then
-			  echo The file is a symbolic link
+			  echo "The file is a symbolic link."
 		  else
-			  echo Not a symbolic link #TODO: Are these conditions exclusive??
+			  echo "Not a symbolic link" #TODO: Are these conditions exclusive??
 	    fi
 
 	  #Get the fastaIDs from file $i and append them to a list containing all fastaIDs from the given folder
@@ -55,25 +70,31 @@ find "$1" -type f -name "*.fa" -or -name "*.fasta" | while read i
 		#First, remove all gaps in the non-title lines and then remove all the titles
 
 		#TODO: how to deal with files like ._sequences.fasta?? Or hidden files???
-		echo "The total sequence length of the file is:"
-    sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m
+		#Maybe I should filter this at the beginning, when I'm selecting the files to iterate over
+		#wc -m counts words in a file
+		SEQ_LENGTH=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m)
+		echo "The total sequence length of the file is: " $SEQ_LENGTH
+    #sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m
     # tr -d '\n' removes new lines
 
     # If file $i contains less than or equal to N*2 lines, show it completely
     # Otherwise, show the first N lines, then "...", and then the last N lines
     NLINES_FILE=$(grep -c "" $i)
     echo "The number of lines in the file is: " $NLINES_FILE
-    echo $2
-    echo $(( $2 * 2 ))
-#    if [[ $NLINES_FILE -le $(( $2 * 2 )) ]]
-#    then
-#      cat $i
-#    else
-#      echo WARN: The file has more than 2*$2 = $(( $2 * 2 )) lines
-#      head -n $2 $i
-#      echo "..."
-#      head -n $2 $i
-#    fi
+
+    if [[ $N -gt 0 ]]
+    then
+      if [[ $NLINES_FILE -le $(( $N * 2 )) ]]
+      then
+        echo "Showing entire file:"
+        cat $i
+      else
+        echo "Peek of the file: "
+        head -n $N $i
+        echo "..."
+        head -n $N $i
+      fi
+    fi
 
   done
 #Once the fasta_ids file is created, sort it, get unique fastaIDs and count them
