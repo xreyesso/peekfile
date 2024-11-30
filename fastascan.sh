@@ -33,33 +33,45 @@ then
   N=0
 fi
 
-
 #TODO: how to check $2 is a positive number?
 #TODO: how to set the default of $1 to current dir
 
 fasta_files=$(find $FOLDER -type f -name "*.fa" -or -name "*.fasta")
 n_files=$(find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | wc -l)
-echo "####### REPORT ###############"
-echo There are $n_files fa/fasta files in the provided folder
+echo "##################### REPORT #####################"
+echo "There are $n_files fa/fasta files in the provided folder"
 
-
-#TODO: determine how many unique fasta IDs there are in the fa/files of our folder
-#Step 1: print all/create a file with all the fasta IDs
-#Step 2: keep the unique ones -> how??
-
-#TODO: for each file print a header with the file name
-#Create fasta_ids file in the given folder, we will store all fasta IDs here for further processing
+# Determine how many unique fastaIDs the fa/files of the given folder contain in total
+# Step 1: create fasta_ids file in the given folder (using the touch command). We will store
+# all fasta IDs here for further processing
+# Step 2: sort the fastaIDs
+# Step 3: get the unique ones
 touch $FOLDER/fasta_ids
-#chmod +w $1/fasta_ids
 find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
   do
-    #TODO: how to delete the path and only keep the name??
+    grep ">" $i | sed 's/>//' | awk '{print $1}' >> $FOLDER/fasta_ids
+  done
 
-    # Remove everything up to and including the last '/'
+# Print the number of unique fastaIDs
+N_UNIQUE_IDS=$(sort $FOLDER/fasta_ids | uniq | wc -l)
+echo "There are $N_UNIQUE_IDS unique fasta IDs in the given folder"
+echo "------------ REPORT PER FILE ------------"
+
+# Process each file to:
+# 1. Print a header with the file name and
+#    indicate whether the file is a symlink, the number of sequences the file contains,
+#    and the total sequence length
+# 2. Show the full content if the file has 2N lines or less, otherwise show the first N lines
+#    then ... and the last N lines
+find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
+  do
+    # To only show the file name instead of the path, remove everything up to and including the last '/'
     FILENAME=$(echo $i | sed "s/.*\///g")
-    #sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m
 
-    echo "###### The file name is " $FILENAME "#########"
+    # Print the header including the file name
+    echo "########## The file name is $FILENAME ##########"
+
+    # Indicate whether the file is a symlink
     if [[ -h $i ]]
       then
     	echo "The file is a symbolic link."
@@ -67,10 +79,11 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     	echo "Not a symbolic link" #TODO: Are these conditions exclusive??
     fi
 
-    # Use the exit code of grep to decide whether to process the file further
-    # If FILENAME does not start with a letter, print the message
+    # Use the exit code of grep to decide whether to process the file further.
+    # For example, grep cannot process files starting with '._'
+    # If FILENAME does not start with a letter, print the message:
     # 'File cannot be processed because its filename is not as expected'
-    # and go to the next iteration
+    # and go to the next iteration.
     # Use -q to not print the matches
     if echo $FILENAME | grep -q -v "^[a-zA-Z]"
     then
@@ -78,25 +91,19 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       continue
     fi
 
-	  #Get the fastaIDs from file $i and append them to a list containing all fastaIDs from the given folder
-		grep ">" $i | sed 's/>//' | awk '{print $1}' >> $FOLDER/fasta_ids
-
-		#Compute total number of sequences per file
+		# Compute total number of sequences per file
 		# Recall: use ^ to grep ">" at the beginning of a string
-		nseq=$(grep "^>" $i | wc -l)
-		echo "The number of sequences is: " $nseq
+		NSEQ=$(grep "^>" $i | wc -l)
+		echo "The number of sequences is:  $NSEQ"
 
-		#Compute the total number of amino acids or nucleotides of ALL sequences in the file
-		#First, remove all gaps in the non-title lines and then remove all the titles
+		# Compute the total number of amino acids or nucleotides of ALL sequences in the file
 
-		#TODO: how to deal with files like ._sequences.fasta?? Or hidden files???
-		#Maybe I should filter this at the beginning, when I'm selecting the files to iterate over
-		# we first get rid of '-' and then of white spaces in lines that are not the header
-		# then we pass all lines except the headers to tr to get rid of new line characters
+		# We first get rid of '-, and then we get rid of white spaces in lines that are not the header.
+		# Then we pass all lines except the headers to tr to get rid of new line characters
 		# wc -m counts words in a file
 		SEQ_LENGTH=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m)
 		echo "The total sequence length of the file is: " $SEQ_LENGTH
- 
+
     # tr -d '\n' removes new lines
 
     # If file $i contains less than or equal to N*2 lines, show it completely
@@ -114,18 +121,9 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
         echo "Peek of the file: "
         head -n $N $i
         echo "..."
-        head -n $N $i
+        tail -n $N $i
       fi
     fi
-
   done
-#Once the fasta_ids file is created, sort it, get unique fastaIDs and count them
-echo "######" End of information per file "#########"
-N_UNIQUE_IDS=$(sort $FOLDER/fasta_ids | uniq | wc -l)
-echo "There are: " $N_UNIQUE_IDS "unique fasta IDs in the given folder"
 
-# remove all gaps in non-title lines, example:
-#sed '/>/! s/-//g' fesor.dbteu.aligned.fa
-#Can you print all sequences (omitting titles) in fesor.dbteu.aligned.fa with gaps removed?
-#remove all gaps in non-title lines and then then remove all the titles, example:
-#sed '/>/! s/-//g' fesor.dbteu.aligned.fa | grep -v '>'
+
