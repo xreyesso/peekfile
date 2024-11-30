@@ -8,18 +8,22 @@ N=$2
 if [[ $# -gt 2 ]]
 then
   echo "The number of arguments passed is greater than expected"
-fi
-
-if [[ ! -d $1 ]]
-then
-	echo "The argument given is not a directory"
+  exit 1
 fi
 
 # If the folder is not given, use current folder as default
-#if [[ -z $1 ]]
-#then
-#	FOLDER=.
-#fi
+# However, if the file does exist, check whether it is a directory, and give a message if not
+if [[ -z $1 ]]
+then
+	FOLDER=.
+else
+  #TODO: improve this condition, what if the given dir does not exist?
+  if [[ ! -d $1 ]]
+  then
+  	echo "The argument given is not a directory"
+  	exit 1
+  fi
+fi
 
 # If the number of lines N is not given, use 0 as default
 if [[ -z $2 ]]
@@ -31,8 +35,8 @@ fi
 #TODO: how to check $2 is a positive number?
 #TODO: how to set the default of $1 to current dir
 
-fasta_files=$(find $1 -type f -name "*.fa" -or -name "*.fasta")
-n_files=$(find $1 -type f -name "*.fa" -or -name "*.fasta" | wc -l)
+fasta_files=$(find $FOLDER -type f -name "*.fa" -or -name "*.fasta")
+n_files=$(find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | wc -l)
 echo "####### REPORT ###############"
 echo There are $n_files fa/fasta files in the provided folder
 
@@ -43,9 +47,9 @@ echo There are $n_files fa/fasta files in the provided folder
 
 #TODO: for each file print a header with the file name
 #Create fasta_ids file in the given folder, we will store all fasta IDs here for further processing
-touch $1/fasta_ids
+touch $FOLDER/fasta_ids
 #chmod +w $1/fasta_ids
-find "$1" -type f -name "*.fa" -or -name "*.fasta" | while read i
+find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
   do
     filename=$i
 
@@ -59,7 +63,7 @@ find "$1" -type f -name "*.fa" -or -name "*.fasta" | while read i
 	    fi
 
 	  #Get the fastaIDs from file $i and append them to a list containing all fastaIDs from the given folder
-		grep ">" $i | sed 's/>//' | awk '{print $1}' >> $1/fasta_ids
+		grep ">" $i | sed 's/>//' | awk '{print $1}' >> $FOLDER/fasta_ids
 
 		#Compute total number of sequences per file
 		# Recall: use ^ to grep ">" at the beginning of a string
@@ -99,7 +103,7 @@ find "$1" -type f -name "*.fa" -or -name "*.fasta" | while read i
   done
 #Once the fasta_ids file is created, sort it, get unique fastaIDs and count them
 echo "######" End of information per file "#########"
-N_UNIQUE_IDS=$(sort $1/fasta_ids | uniq | wc -l)
+N_UNIQUE_IDS=$(sort $FOLDER/fasta_ids | uniq | wc -l)
 echo "There are: " $N_UNIQUE_IDS "unique fasta IDs in the given folder"
 
 # remove all gaps in non-title lines, example:
