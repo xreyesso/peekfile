@@ -55,7 +55,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 # Print the number of unique fastaIDs
 N_UNIQUE_IDS=$(sort $FOLDER/fasta_ids | uniq | wc -l)
 echo "There are $N_UNIQUE_IDS unique fasta IDs in the given folder"
-echo "------------ REPORT PER FILE ------------"
+echo "-------------- REPORT PER FILE --------------"
 
 # Process each file to:
 # 1. Print a header with the file name and
@@ -68,8 +68,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     # To only show the file name instead of the path, remove everything up to and including the last '/'
     FILENAME=$(echo $i | sed "s/.*\///g")
 
-    # Print the header including the file name
-    echo "########## The file name is $FILENAME ##########"
+    echo "######## The file name is $FILENAME ########"
 
     # Indicate whether the file is a symlink
     if [[ -h $i ]]
@@ -91,6 +90,16 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       continue
     fi
 
+    #TODO: How to print the header including the file name and whether the file contains nucleotides or amino acids?
+    #TODO: remove the sed repetition in lines 73 and 111
+    SEQUENCES=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n')
+    if echo $SEQUENCES | grep -q "[defhiklmpqrsvwxyDEFHIKLMPQRSVWXY]"
+    then
+      echo "Amino acid ########"
+    else
+        echo "Nucleotide ########"
+    fi
+
 		# Compute total number of sequences per file
 		# Recall: use ^ to grep ">" at the beginning of a string
 		NSEQ=$(grep "^>" $i | wc -l)
@@ -100,25 +109,14 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 
 		# We first get rid of '-, and then we get rid of white spaces in lines that are not the header.
 		# Then we pass all lines except the headers to tr to get rid of new line characters
-		# wc -m counts words in a file
+		# tr -d '\n' removes new lines, wc -m counts characters in a file
 		SEQ_LENGTH=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m)
 		echo "The total sequence length of the file is: " $SEQ_LENGTH
-
-    # tr -d '\n' removes new lines
-
-    # Determine whether the file contains nucleotides or amino acids
-    SEQUENCE=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n')
-    if echo $SEQUENCE | grep -q "[defhiklmpqrsvwxyDEFHIKLMPQRSVWXY]"
-    then
-      echo "Amino acid"
-    else
-      echo "Nucleotide"
-    fi
 
     # If file $i contains less than or equal to N*2 lines, show it completely
     # Otherwise, show the first N lines, then "...", and then the last N lines
     NLINES_FILE=$(grep -c "" $i)
-    echo "The number of lines in the file is: " $NLINES_FILE
+    echo "The number of lines in the file is: " $NLINES_FILE #TODO: remove this line when submitting
 
     if [[ $N -gt 0 ]]
     then
