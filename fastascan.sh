@@ -106,6 +106,15 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 
     # tr -d '\n' removes new lines
 
+    # Determine whether the file contains nucleotides or amino acids
+    SEQUENCE=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n')
+    if echo $SEQUENCE | grep -q "[defhiklmpqrsvwxyDEFHIKLMPQRSVWXY]"
+    then
+      echo "Amino acid"
+    else
+      echo "Nucleotide"
+    fi
+
     # If file $i contains less than or equal to N*2 lines, show it completely
     # Otherwise, show the first N lines, then "...", and then the last N lines
     NLINES_FILE=$(grep -c "" $i)
