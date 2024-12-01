@@ -111,15 +111,17 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     # To only show the file name instead of the path, remove everything up to and including the last '/'
     FILENAME=$(echo $i | sed "s/.*\///g")
 
-    echo "######## The file name is $FILENAME ########"
-
     # Indicate whether the file is a symlink
     if [[ -h $i ]]
-      then
-    	echo "The file is a symbolic link."
+    then
+    	SYMLINK=1
+    	echo "The file is a symbolic link $FILENAME"
     else
-    	echo "Not a symbolic link"
+    	SYMLINK=0
+    	echo "Not a symbolic link $FILENAME"
     fi
+
+    VALID_FILENAME=1
 
     # Use the exit code of grep to decide whether to process the file further.
     # For example, grep cannot process files starting with '._'
@@ -129,7 +131,15 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     # Use -q to not print the matches
     if echo $FILENAME | grep -q -v "^[a-zA-Z]"
     then
-      echo "File cannot be processed because its filename is not as expected"
+      VALID_FILENAME=0
+      echo "######## The file name is $FILENAME ########"
+      if [[ $SYMLINK -eq 1 ]]
+      then
+        echo "The file is a symbolic link."
+      else
+        echo "Not a symbolic link"
+      fi
+      echo "File cannot be further processed because its filename is not as expected"
       continue
     fi
 
@@ -138,10 +148,29 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     SEQUENCES=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n')
     if echo $SEQUENCES | grep -q "[defhiklmpqrsvwxyDEFHIKLMPQRSVWXY]"
     then
-      echo "Amino acid ########"
+      AMINO_ACID=1
     else
-        echo "Nucleotide ########"
+      NUCLEOTIDE=1
     fi
+
+    if [[ $VALID_FILENAME -eq 1 ]]
+    then
+      if [[ $NUCLEOTIDE -eq 1 ]]
+      then
+        echo "######## The file name is $FILENAME and is a NUCLEOTIDE ########"
+      elif [[ $AMINO_ACID -eq 1 ]]
+      then
+        echo "######## The file name is $FILENAME and is an AMINO ACID ########"
+      fi
+    fi
+
+    if [[ $SYMLINK -eq 1 ]]
+    then
+      echo "The file is a symbolic link."
+    else
+      echo "Not a symbolic link"
+    fi
+
 
 		# Compute total number of sequences per file
 		# Recall: use ^ to grep ">" at the beginning of a string
@@ -159,7 +188,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     # If file $i contains less than or equal to N*2 lines, show it completely
     # Otherwise, show the first N lines, then "...", and then the last N lines
     NLINES_FILE=$(grep -c "" $i)
-    echo "The number of lines in the file is: $NLINES_FILE" #TODO: remove this line when submitting
+    echo "The number of lines in the file is: $NLINES_FILE" #TODO: remove this line when submitting, as well as lines 44, 45, 92
 
     if [[ $N -gt 0 ]]
     then
