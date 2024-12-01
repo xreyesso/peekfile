@@ -4,48 +4,91 @@
 
 #TODO: Fix indentation
 
-FOLDER=$1
-N=$2
-
-if [[ $# -gt 2 ]]
+# We first check the number of arguments is correct. If it is, try to accommodate them in the correct variable
+if [[ $# -gt 2 ]] # If more than two arguments are given, exit the program
 then
   echo "The number of arguments passed is greater than expected"
   exit 1
 fi
 
-# If the folder is not given, use current folder as default
-# However, if the file does exist, check whether it is a directory, and give a message if not
-if [[ -z $1 ]]
+if [[ $# -eq 0 ]] # If no arguments are given, use the default values
 then
-	FOLDER=.
-else
-  #TODO: improve this condition, what if the given dir does not exist?
-  if [[ ! -d $1 ]]
+    N=0
+    FOLDER=.
+fi
+
+if [[ $# -eq 1 ]] # If one argument is given, check first whether it is numeric
+then
+  if [[ $1 =~ ^-?[0-9]+$ ]] # If argument is numeric, use it as N and set FOLDER to current folder
   then
-  	echo "The argument given is not a directory"
-  	exit 1
+    N=$1
+    FOLDER=.
+  else # If the argument is not numeric, use it as FOLDER and set N to 0
+    FOLDER=$1
+    N=0
   fi
 fi
 
-# If the number of lines N is not given, use 0 as default
-if [[ -z $2 ]]
+if [[ $# -eq 2 ]] # If two arguments are given, check whether one is numeric and assign it to N
 then
-  N=0
+  if [[ $1 =~ ^-?[0-9]+$ ]] # Check whether the first argument is a number
+  then
+    N=$1
+    FOLDER=$2
+  else
+    N=$2
+    FOLDER=$1
+  fi
 fi
 
-#TODO: how to check $2 is a positive number?
-#TODO: how to set the default of $1 to current dir
+echo "FOLDER: $FOLDER"
+echo "N: $N"
 
-fasta_files=$(find $FOLDER -type f -name "*.fa" -or -name "*.fasta")
-n_files=$(find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | wc -l)
+# Now, check if all arguments are correct
+if [[ -d $FOLDER ]] # With the option -d, we check if the given path exists AND is a directory
+then
+  if [[ -r $FOLDER ]] # Check if we have permission to read the directory
+  then
+    if [[ ! -w $FOLDER ]] # Check if we have permission to write in the directory, since this is necessary to compute
+    # the number of unique fastaIDs
+    then
+    	echo "The folder does not have write permission, and this is necessary for further steps"
+    	exit 1
+    fi
+  else
+    echo "The folder specified does not have read permission"
+    exit 1
+  fi
+else
+  echo "The given path is not a directory or the directory does not exist"
+  exit 1
+fi
+
+if [[ $N =~ ^[-] ]]
+then
+  echo "The number of lines provided is not valid"
+  exit 1
+fi
+
+# Now that all arguments are valid, we proceed to generate the report
+# We first compute the number of fa/fasta files in the given folder
+FASTA_FILES=$(find $FOLDER -type f -name "*.fa" -or -name "*.fasta")
+N_FILES=$(echo "$FASTA_FILES" | wc -l)
 echo "##################### REPORT #####################"
-echo "There are $n_files fa/fasta files in the provided folder"
+echo "There are $N_FILES fa/fasta files in the provided folder"
+
+if [[ $N_FILES -eq 0 ]]
+then
+  echo "There is nothing to process"
+  exit 0
+fi
 
 # Determine how many unique fastaIDs the fa/files of the given folder contain in total
 # Step 1: create fasta_ids file in the given folder (using the touch command). We will store
 # all fasta IDs here for further processing
-# Step 2: sort the fastaIDs
+# Step 2: sort the fasta IDs
 # Step 3: get the unique ones
+echo "FOLDER: $FOLDER"
 touch $FOLDER/fasta_ids
 find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
   do
@@ -75,7 +118,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       then
     	echo "The file is a symbolic link."
     else
-    	echo "Not a symbolic link" #TODO: Are these conditions exclusive??
+    	echo "Not a symbolic link"
     fi
 
     # Use the exit code of grep to decide whether to process the file further.
@@ -111,12 +154,12 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 		# Then we pass all lines except the headers to tr to get rid of new line characters
 		# tr -d '\n' removes new lines, wc -m counts characters in a file
 		SEQ_LENGTH=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m)
-		echo "The total sequence length of the file is: " $SEQ_LENGTH
+		echo "The total sequence length of the file is: $SEQ_LENGTH"
 
     # If file $i contains less than or equal to N*2 lines, show it completely
     # Otherwise, show the first N lines, then "...", and then the last N lines
     NLINES_FILE=$(grep -c "" $i)
-    echo "The number of lines in the file is: " $NLINES_FILE #TODO: remove this line when submitting
+    echo "The number of lines in the file is: $NLINES_FILE" #TODO: remove this line when submitting
 
     if [[ $N -gt 0 ]]
     then
