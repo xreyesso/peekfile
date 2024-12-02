@@ -4,7 +4,7 @@
 
 #TODO: Fix indentation
 
-# We first check the number of arguments is correct. If it is, try to accommodate them in the correct variable
+# We first check whether the number of arguments is correct. If it is, try to accommodate them in the correct variable
 if [[ $# -gt 2 ]] # If more than two arguments are given, exit the program
 then
   echo "The number of arguments passed is greater than expected"
@@ -40,9 +40,6 @@ then
     FOLDER=$1
   fi
 fi
-
-echo "FOLDER: $FOLDER"
-echo "N: $N"
 
 # Now, check if all arguments are correct
 if [[ -d $FOLDER ]] # With the option -d, we check if the given path exists AND is a directory
@@ -83,12 +80,11 @@ then
   exit 0
 fi
 
-# Determine how many unique fastaIDs the fa/files of the given folder contain in total
+# Then, we determine how many unique fastaIDs the fa/files of the given folder contain in total
 # Step 1: create fasta_ids file in the given folder (using the touch command). We will store
 # all fasta IDs here for further processing
 # Step 2: sort the fasta IDs
 # Step 3: get the unique ones
-echo "FOLDER: $FOLDER"
 touch $FOLDER/fasta_ids
 find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
   do
@@ -100,7 +96,7 @@ N_UNIQUE_IDS=$(sort $FOLDER/fasta_ids | uniq | wc -l)
 echo "There are $N_UNIQUE_IDS unique fasta IDs in the given folder"
 echo "-------------- REPORT PER FILE --------------"
 
-# Process each file to:
+# Next, process each file to:
 # 1. Print a header with the file name and
 #    indicate whether the file is a symlink, the number of sequences the file contains,
 #    and the total sequence length
@@ -111,14 +107,12 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     # To only show the file name instead of the path, remove everything up to and including the last '/'
     FILENAME=$(echo $i | sed "s/.*\///g")
 
-    # Indicate whether the file is a symlink
+    # Store in a variable if the file is a symlink
     if [[ -h $i ]]
     then
     	SYMLINK=1
-    	echo "The file is a symbolic link $FILENAME"
     else
     	SYMLINK=0
-    	echo "Not a symbolic link $FILENAME"
     fi
 
     VALID_FILENAME=1
@@ -143,10 +137,11 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       continue
     fi
 
-    # For files that can be processed, indicate in their header whether they contain nucleotides or amino acids
-
-    #TODO: How to print the header including the file name and whether the file contains nucleotides or amino acids?
-    #TODO: remove the sed repetition in lines 73 and 111
+    # For files that can be processed, indicate in their header whether they contain nucleotides or amino acids.
+    # To determine this, first store in a variable all sequences in the file without '-', spaces and newlines.
+    # Implementation: we first get rid of '-' and white spaces in lines that are not the header.
+    # We then pass all lines except the headers to tr to get rid of new line characters.
+    # tr -d '\n' removes new lines
     SEQUENCES=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n')
     if echo $SEQUENCES | grep -q "[defhiklmpqrsvwxyDEFHIKLMPQRSVWXY]" # If any of the characters inside brackets
     # can be found, it is an amino acid
@@ -158,6 +153,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       AMINO_ACID=0
     fi
 
+    # Print the headers for files with valid names
     if [[ $VALID_FILENAME -eq 1 ]]
     then
       if [[ $NUCLEOTIDE -eq 1 ]]
@@ -169,13 +165,13 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       fi
     fi
 
+    # Check if the file is a symbolic link
     if [[ $SYMLINK -eq 1 ]]
     then
-      echo "The file is a symbolic link."
+      echo "The file is a symbolic link"
     else
       echo "Not a symbolic link"
     fi
-
 
 		# Compute total number of sequences per file
 		# Recall: use ^ to grep ">" at the beginning of a string
@@ -183,17 +179,13 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 		echo "The number of sequences is:  $NSEQ"
 
 		# Compute the total number of amino acids or nucleotides of ALL sequences in the file
-
-		# We first get rid of '-, and then we get rid of white spaces in lines that are not the header.
-		# Then we pass all lines except the headers to tr to get rid of new line characters
-		# tr -d '\n' removes new lines, wc -m counts characters in a file
+		# Reuse the SEQUENCES variable, wc -m counts characters in a file
 		SEQ_LENGTH=$(echo "$SEQUENCES" | wc -m)
 		echo "The total sequence length of the file is: $SEQ_LENGTH"
 
     # If file $i contains less than or equal to N*2 lines, show it completely
     # Otherwise, show the first N lines, then "...", and then the last N lines
     NLINES_FILE=$(grep -c "" $i)
-    echo "The number of lines in the file is: $NLINES_FILE" #TODO: remove this line when submitting, as well as lines 44, 45, 92
 
     if [[ $N -gt 0 ]]
     then
