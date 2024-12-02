@@ -127,8 +127,8 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
     # For example, grep cannot process files starting with '._'
     # If FILENAME does not start with a letter, print the message:
     # 'File cannot be processed because its filename is not as expected'
-    # and go to the next iteration.
-    # Use -q to not print the matches
+    # and go to the next iteration. Use -q to not print the matches
+    # For this type of files, indicate as well whether the file is a symbolic link
     if echo $FILENAME | grep -q -v "^[a-zA-Z]"
     then
       VALID_FILENAME=0
@@ -143,14 +143,19 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       continue
     fi
 
+    # For files that can be processed, indicate in their header whether they contain nucleotides or amino acids
+
     #TODO: How to print the header including the file name and whether the file contains nucleotides or amino acids?
     #TODO: remove the sed repetition in lines 73 and 111
     SEQUENCES=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n')
-    if echo $SEQUENCES | grep -q "[defhiklmpqrsvwxyDEFHIKLMPQRSVWXY]"
+    if echo $SEQUENCES | grep -q "[defhiklmpqrsvwxyDEFHIKLMPQRSVWXY]" # If any of the characters inside brackets
+    # can be found, it is an amino acid
     then
       AMINO_ACID=1
+      NUCLEOTIDE=0
     else
       NUCLEOTIDE=1
+      AMINO_ACID=0
     fi
 
     if [[ $VALID_FILENAME -eq 1 ]]
@@ -182,7 +187,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 		# We first get rid of '-, and then we get rid of white spaces in lines that are not the header.
 		# Then we pass all lines except the headers to tr to get rid of new line characters
 		# tr -d '\n' removes new lines, wc -m counts characters in a file
-		SEQ_LENGTH=$(sed '/>/! s/-//g; s/ //g' $i | grep -v '>' | tr -d '\n' | wc -m)
+		SEQ_LENGTH=$(echo "$SEQUENCES" | wc -m)
 		echo "The total sequence length of the file is: $SEQ_LENGTH"
 
     # If file $i contains less than or equal to N*2 lines, show it completely
