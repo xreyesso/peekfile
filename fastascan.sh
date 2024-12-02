@@ -1,8 +1,7 @@
+# ALG midterm 3
 # The script takes two optional arguments:
 # The folder X where to search the files, default: current folder
 # A number of lines N, default: 0
-
-#TODO: Fix indentation
 
 # We first check whether the number of arguments is correct. If it is, try to accommodate them in the correct variable
 if [[ $# -gt 2 ]] # If more than two arguments are given, exit the program
@@ -173,15 +172,15 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
       echo "Not a symbolic link"
     fi
 
-	  # Compute total number of sequences per file
-	  # Recall: use ^ to grep ">" at the beginning of a string
-	  NSEQ=$(grep "^>" $i | wc -l)
-	  echo "The number of sequences is: $NSEQ"
+    # Compute total number of sequences per file
+    # Recall: use ^ to grep ">" at the beginning of a string
+    NSEQ=$(grep "^>" $i | wc -l)
+    echo "The number of sequences is: $NSEQ"
 
-	  # Compute the total number of amino acids or nucleotides of ALL sequences in the file
-	  # Reuse the SEQUENCES variable, wc -m counts characters in a file
-	  SEQ_LENGTH=$(echo "$SEQUENCES" | wc -m)
-	  echo "The total sequence length of the file is: $SEQ_LENGTH"
+    # Compute the total number of amino acids or nucleotides of ALL sequences in the file
+    # Reuse the SEQUENCES variable, wc -m counts characters in a file
+    SEQ_LENGTH=$(echo "$SEQUENCES" | wc -m)
+    echo "The total sequence length of the file is: $SEQ_LENGTH"
 
     # If file $i contains less than or equal to N*2 lines, show it completely
     # Otherwise, show the first N lines, then "...", and then the last N lines
