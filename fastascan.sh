@@ -179,7 +179,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read i
 
     # Compute the total number of amino acids or nucleotides of ALL sequences in the file
     # Reuse the SEQUENCES variable, wc -m counts characters in a file
-    SEQ_LENGTH=$(echo "$SEQUENCES" | wc -m)
+    SEQ_LENGTH=$(echo -n "$SEQUENCES" | wc -m)
     echo "The total sequence length of the file is: $SEQ_LENGTH"
 
     # If file $i contains less than or equal to N*2 lines, show it completely
