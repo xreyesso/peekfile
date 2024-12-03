@@ -5,6 +5,8 @@
 # Usage: ./fastascan.sh [N] [FOLDER]
 # - N: Number of lines to preview (default: 0)
 # - FOLDER: Directory to scan (default: current)
+# ChatGPT suggested an enhanced version that contained errors and several bugs. Therefore, I only considered
+# those changes that did not affect the script's purpose but improved readability and optimized performance.
 
 # Argument parsing
 if [[ $# -gt 2 ]]; then
@@ -99,8 +101,7 @@ find $FOLDER -type f -name "*.fa" -or -name "*.fasta" | while read FILE; do
     echo "Total Length: $SEQ_LENGTH"
 
     # File preview
-    NLINES=$(wc -l < "$FILE") # Alternative syntax, discouraged in class but suggested by ChatGPT
-    echo "The number of lines of the file is: $NLINES"
+    NLINES=$(grep -c "" $FILE)
     if [[ $N -gt 0 ]]; then
       if [[ $NLINES -le $((N * 2)) ]]; then
         echo "File content:"
